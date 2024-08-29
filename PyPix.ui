@@ -41,7 +41,7 @@
    <widget class="QTabWidget" name="tabWidget">
     <property name="geometry">
      <rect>
-      <x>0</x>
+      <x>-10</x>
       <y>0</y>
       <width>831</width>
       <height>881</height>
@@ -251,55 +251,6 @@ Please connect to camera.</string>
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="gridLayoutWidget_4">
-      <property name="geometry">
-       <rect>
-        <x>600</x>
-        <y>270</y>
-        <width>211</width>
-        <height>81</height>
-       </rect>
-      </property>
-      <layout class="QGridLayout" name="gridLayout_4">
-       <item row="0" column="1" colspan="2">
-        <widget class="QComboBox" name="_view">
-         <item>
-          <property name="text">
-           <string>Single Shot</string>
-          </property>
-         </item>
-         <item>
-          <property name="text">
-           <string>Cumulative</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item row="0" column="0">
-        <widget class="QLabel" name="label_7">
-         <property name="text">
-          <string>Image Type</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="1" colspan="2">
-        <widget class="QComboBox" name="_colourmap">
-         <item>
-          <property name="text">
-           <string>None</string>
-          </property>
-         </item>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="label_8">
-         <property name="text">
-          <string>Colour Scheme</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
      <widget class="QWidget" name="_ToT" native="true">
       <property name="geometry">
        <rect>
@@ -315,7 +266,7 @@ Please connect to camera.</string>
        <rect>
         <x>10</x>
         <y>320</y>
-        <width>71</width>
+        <width>81</width>
         <height>25</height>
        </rect>
       </property>
@@ -411,7 +362,7 @@ Please connect to camera.</string>
      <widget class="QWidget" name="gridLayoutWidget_10">
       <property name="geometry">
        <rect>
-        <x>300</x>
+        <x>410</x>
         <y>270</y>
         <width>281</width>
         <height>81</height>
@@ -507,8 +458,8 @@ Please connect to camera.</string>
      <widget class="QLabel" name="label_6">
       <property name="geometry">
        <rect>
-        <x>450</x>
-        <y>695</y>
+        <x>290</x>
+        <y>710</y>
         <width>111</width>
         <height>16</height>
        </rect>
@@ -520,8 +471,8 @@ Please connect to camera.</string>
      <widget class="QSlider" name="_vmax_ToT">
       <property name="geometry">
        <rect>
-        <x>340</x>
-        <y>680</y>
+        <x>170</x>
+        <y>690</y>
         <width>321</width>
         <height>22</height>
        </rect>
@@ -567,9 +518,9 @@ Please connect to camera.</string>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="_pop_toa">
+        <widget class="QPushButton" name="_pop_cum">
          <property name="text">
-          <string>ToA</string>
+          <string>Cumulative</string>
          </property>
         </widget>
        </item>
@@ -582,23 +533,7 @@ Please connect to camera.</string>
        </item>
       </layout>
      </widget>
-     <widget class="QLabel" name="_camera_connect">
-      <property name="geometry">
-       <rect>
-        <x>90</x>
-        <y>320</y>
-        <width>201</width>
-        <height>25</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Disconnected</string>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-     </widget>
-     <widget class="QWidget" name="_ToA" native="true">
+     <widget class="QWidget" name="_ToT_cum" native="true">
       <property name="geometry">
        <rect>
         <x>0</x>
@@ -608,39 +543,30 @@ Please connect to camera.</string>
        </rect>
       </property>
      </widget>
-     <widget class="QSlider" name="_vmax_ToA">
+     <widget class="QLabel" name="label_3">
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>680</y>
-        <width>321</width>
-        <height>22</height>
-       </rect>
-      </property>
-      <property name="value">
-       <number>99</number>
-      </property>
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-      <property name="tickPosition">
-       <enum>QSlider::TicksAbove</enum>
-      </property>
-      <property name="tickInterval">
-       <number>10</number>
-      </property>
-     </widget>
-     <widget class="QLabel" name="label_14">
-      <property name="geometry">
-       <rect>
-        <x>100</x>
-        <y>695</y>
-        <width>111</width>
+        <y>690</y>
+        <width>81</width>
         <height>16</height>
        </rect>
       </property>
       <property name="text">
-       <string>Scale Image Intensity</string>
+       <string>ToT Cumulative</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_4">
+      <property name="geometry">
+       <rect>
+        <x>580</x>
+        <y>690</y>
+        <width>81</width>
+        <height>16</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>ToT LED Trigger</string>
       </property>
      </widget>
     </widget>
@@ -695,10 +621,8 @@ Please connect to camera.</string>
   <tabstop>_tof_range_max</tabstop>
   <tabstop>_min_x</tabstop>
   <tabstop>_max_x</tabstop>
-  <tabstop>_view</tabstop>
-  <tabstop>_colourmap</tabstop>
   <tabstop>_pop_tof</tabstop>
-  <tabstop>_pop_toa</tabstop>
+  <tabstop>_pop_cum</tabstop>
   <tabstop>_pop_tot</tabstop>
   <tabstop>_rotate_c</tabstop>
   <tabstop>_rotate_cc</tabstop>

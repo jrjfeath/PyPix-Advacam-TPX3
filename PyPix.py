@@ -11,9 +11,6 @@ import pyqtgraph as pg
 from pyqtgraph.widgets.RawImageWidget import RawImageWidget
 from sklearn.cluster import DBSCAN #scikit-learn
 
-save_directory = r'C:\Users\mb\Documents\timepix\Dongus'
-save_file = '23-8-24.h5'
-config_file = 'Q:/Cameras/TimePix/FITPix-H08-W0028.xml'
 bias = 50
 
 # Program MUST be run out of the PIXET Pro installation directory
@@ -129,26 +126,24 @@ class ImageAcquisitionThread(QtCore.QThread):
             return
         else:
             self.tot_signal.emit([image, coms[0]])                                      # Emit the ToT image and the LED location
-
-        com = coms[0]
-        # Create a list of pixels to check for LED pulses
-        led_pixels_x = np.array([p for p in range(com[0]-10,com[0]+10)])
-        led_pixels_y = np.array([p for p in range(com[1]-10,com[1]+10)])
-        pixel_threshold = 20
+        
+        # After sending the ToT data we now want to roughly find t0 and slice data
+        com = coms[0]                                    # Get the first index of com
+        led_pixels_x = np.arange(com[0]-10,com[0]+11, 1) # Make an array containing com +/- 10
+        led_pixels_y = np.arange(com[1]-10,com[1]+11, 1)
+        pixel_threshold = 20                             # Set a minimum threshold to ignore background
+        
         # Get indices of led pixels to get the led time of arrivals, remove any values below the set threshold
         ind = np.where(np.in1d(x,led_pixels_x) & (np.in1d(y,led_pixels_y)) & (ToT >= pixel_threshold))[0]
-        pixel_ToA = np.unique(ToA[ind])
-        # DBSCAN parameters
-        eps = 10000.0  # How many ns do you want to cluster pixels by?
-        min_samples = 2  # Minimum number of pixels to form a cluster
+        pixel_ToA = np.unique(ToA[ind]) # Get the ToA of pixels corresponding to the LED
+        eps = 10000.0                   # How many ns do you want to cluster pixels by?
+        min_samples = 2                 # Minimum number of pixels to form a cluster
 
-        # Apply DBSCAN
+        # Cluster the ToA data
         clustering = DBSCAN(eps=eps, min_samples=min_samples).fit(pixel_ToA.reshape(-1, 1))
+        labels = clustering.labels_     # This returns the indices of unique centers
 
-        # Get the labels
-        labels = clustering.labels_
-
-        # Extract clusters and find the lowest value in each cluster
+        # Now that we have clusters based on time iterate through them to find LED triggers
         clusters = {}
         for index, point in enumerate(pixel_ToA.flatten()):
             cluster_index = labels[index]
@@ -160,9 +155,6 @@ class ImageAcquisitionThread(QtCore.QThread):
         # Find the lowest value in each cluster
         shot_times = np.array([min(clusters[cluster_index]) for cluster_index in clusters])
 
-        x_data = []
-        y_data = []
-        ToT_data = []
         ToA_data = {}
         start_idx = 0
         min_time = 0
@@ -188,9 +180,6 @@ class ImageAcquisitionThread(QtCore.QThread):
             # Remove laser pulse data and noise outside of thresholds
             not_noise = np.where((min_time < times) & (times < max_time))[0]
             if len(not_noise) == 0: continue
-            # x_data.append(x[start_idx:slice_end_idx][not_noise])
-            # y_data.append(y[start_idx:slice_end_idx][not_noise])
-            # ToT_data.append(ToT[start_idx:slice_end_idx][not_noise])
             temp_toa = times[not_noise]
             toa_counts, toa_times = np.unique(temp_toa, return_counts=True)
             for index, ut in enumerate(toa_times):
@@ -202,7 +191,7 @@ class ImageAcquisitionThread(QtCore.QThread):
         x_toa = np.array([ToA_data[x] for x in ToA_data])
         y_toa = np.array([x for x in ToA_data])
         toa_array = np.vstack((x_toa, y_toa)).T
-        toa_array = toa_array[toa_array[:, 0].argsort()]
+        toa_array = toa_array[toa_array[:, 0].argsort()]   # Make a verticle 2d array
         self.toa_spectrum_signal.emit(toa_array)
 
     def run(self) -> None:
@@ -244,7 +233,7 @@ class UI_Plots():
         self.window_.ToT_origpos_ = self.window_._ToT.pos()
         self.window_.ToT_origwidth_ = self.window_._ToT.width()
         self.window_.ToT_origheight_ = self.window_._ToT.height()
-        self.window_._ToT.setWindowTitle('ToT')
+        self.window_._ToT.setWindowTitle('ToT LED Trigger')
         self.window_._ToT.installEventFilter(self.window_)
         # Create ToT plot
         self.window_.ToT_view_ = RawImageWidget(self.window_._ToT,scaled=True)
@@ -253,18 +242,18 @@ class UI_Plots():
         self.window_.ToT_view_.setSizePolicy(sizePolicy)
         self.window_.ToT_view_.setImage(self.window_.tot_, levels=[0,255])
 
-        # Setup ToA variables
-        self.window_.ToA_origpos_ = self.window_._ToA.pos()
-        self.window_.ToA_origwidth_ = self.window_._ToA.width()
-        self.window_.ToA_origheight_ = self.window_._ToA.height()
-        self.window_._ToA.setWindowTitle('ToA')
-        self.window_._ToA.installEventFilter(self.window_)
-        # Create ToA plot
-        self.window_.ToA_view_ = RawImageWidget(self.window_._ToA,scaled=True)
-        self.grid = QtWidgets.QGridLayout(self.window_._ToA)
-        self.grid.addWidget(self.window_.ToA_view_, 0, 0, 1, 1)
-        self.window_.ToA_view_.setSizePolicy(sizePolicy)
-        self.window_.ToA_view_.setImage(self.window_.toa_, levels=[0,255])
+        # Setup ToT cumulative variables
+        self.window_.ToT_cum_origpos_ = self.window_._ToT_cum.pos()
+        self.window_.ToT_cum_origwidth_ = self.window_._ToT_cum.width()
+        self.window_.ToT_cum_origheight_ = self.window_._ToT_cum.height()
+        self.window_._ToT_cum.setWindowTitle('ToT Cumulative')
+        self.window_._ToT_cum.installEventFilter(self.window_)
+        # Create ToT cumulative plot
+        self.window_.ToT_cum_view_ = RawImageWidget(self.window_._ToT_cum,scaled=True)
+        self.grid = QtWidgets.QGridLayout(self.window_._ToT_cum)
+        self.grid.addWidget(self.window_.ToT_cum_view_, 0, 0, 1, 1)
+        self.window_.ToT_cum_view_.setSizePolicy(sizePolicy)
+        self.window_.ToT_cum_view_.setImage(self.window_.tot_cum_, levels=[0,255])
 
         # Create ToF Spectrum
         self.window_.tof_plot_origpos = self.window_._tof_plot.pos()
@@ -314,10 +303,10 @@ class UI_Plots():
             self.window_._tof_plot.move(int(self.window_.width()/2),int(self.window_.height()/2))
             self.window_._tof_plot.show()
         elif option == 1: 
-            self.window_.toa_expanded_ = True
-            self.window_._ToA.setParent(None)
-            self.window_._ToA.move(int(self.window_.width()/2),int(self.window_.height()/2))
-            self.window_._ToA.show()
+            self.window_.tot_cum_expanded_ = True
+            self.window_._ToT_cum.setParent(None)
+            self.window_._ToT_cum.move(int(self.window_.width()/2),int(self.window_.height()/2))
+            self.window_._ToT_cum.show()
         else:
             self.window_.tot_expanded_ = True
             self.window_._ToT.setParent(None)
@@ -334,29 +323,25 @@ class MainWindow(QtWidgets.QMainWindow):
         # Load UI file
         self.scriptDir = os.path.dirname(__file__)
         uic.loadUi(f'{self.scriptDir}/PyPix.ui',self)
-
-        # Add colourmaps
-        colourmaps = pg.colormap.listMaps("matplotlib")
-        self._colourmap.addItems(colourmaps)
         
         self.device = None   # Stores the connected device
         self.running = False # Store the state of the camera
 
         # Setup various plot variables in UI
-        self.tof_ = np.zeros(50001)      # Show 50 uS of ToF Data
-        self.tot_ = np.zeros((256,256)) # Image array for ToT Data
-        self.toa_ = np.zeros((256,256)) # Image array for ToA Data
-        self.tof_expanded_ = False      # Is the ToF Spectrum popped out?
-        self.toa_expanded_ = False      # Is the ToA Image popped out?
-        self.tot_expanded_ = False      # Is the ToT Image popped out?
-        self.rotation_     = 0          # Rotation angle of the image
+        self.tof_ = np.zeros(50001)         # Show 50 uS of ToF Data
+        self.tot_ = np.zeros((256,256))     # Image array for ToT Data
+        self.tot_cum_ = np.zeros((256,256)) # Image array for ToA Data
+        self.tof_expanded_ = False          # Is the ToF Spectrum popped out?
+        self.tot_cum_expanded_ = False      # Is the ToA Image popped out?
+        self.tot_expanded_ = False          # Is the ToT Image popped out?
+        self.rotation_     = 0              # Rotation angle of the image
 
         #Call the class responsible for plot drawing and functions
         self.ui_plots = UI_Plots(self)
 
         # Link the pop-out buttons to the respective plots
         self._pop_tof.clicked.connect(lambda: self.ui_plots.pop_out_window(0))
-        self._pop_toa.clicked.connect(lambda: self.ui_plots.pop_out_window(1))
+        self._pop_cum.clicked.connect(lambda: self.ui_plots.pop_out_window(1))
         self._pop_tot.clicked.connect(lambda: self.ui_plots.pop_out_window(2))
 
         # Connect to camera
@@ -383,14 +368,9 @@ class MainWindow(QtWidgets.QMainWindow):
         radius = 15
         try: maximum = np.max(image[led[0]-radius:led[0]+radius,led[1]-radius:led[1]+radius]) # Get the maximum value of the led pixels
         except ValueError: maximum = np.max(image)
-        colourmap = self._colourmap.currentText()
-        if colourmap != "None": 
-            cm = pg.colormap.get(colourmap,source="matplotlib")
-            image = cm.map(image)
-        else:
-            image = np.array((image / maximum) * 255, dtype=int)
-            overflow = np.where(image > 255)
-            image[overflow] = 255
+        image = np.array((image / maximum) * 255, dtype=int)
+        overflow = np.where(image > 255)
+        image[overflow] = 255
         if type(led[0]) != False:
             x1 = np.array([[led[0] - radius, led[1] - c] for c in range(-radius,radius+1)])
             y1 = np.array([[led[0] - c, led[1] - radius] for c in range(-radius,radius+1)])
@@ -402,26 +382,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def update_toa_spectrum(self, value: list) -> None:
         self.tof_plot_line.setData(value)
-
-    def update_plots(self, value : list) -> None:
-        image = self.image_
-        
-        # Scale the image based off the slider
-        if self._vmax.value() != 100:
-            image[image > (self._vmax.value()*0.01)] = 0
-            image = ((image / np.max(image)))
-
-        colourmap = self._colourmap.currentText()
-        if colourmap != "None": 
-            cm = pg.colormap.get(colourmap,source="matplotlib")
-            image = cm.map(image)
-        else:
-            image = np.array(image * 255, dtype=np.uint8)
-
-        self.ion_count_plot_line.setData(self.ion_counts_)
-        self.tof_plot_line.setData(self.tof_counts_)
-        self.graphics_view_.setImage(image, levels=[0,255])
-        self._ion_count.setText(str(self.ion_count_displayed))
 
     def update_console(self,string : str) -> None:
         '''
@@ -479,14 +439,14 @@ class MainWindow(QtWidgets.QMainWindow):
                 self._ToT.show()
             else:
                 self.toa_expanded_ = False
-                self._ToA.setParent(self._tab)
-                self._ToA.setGeometry(
-                    self.ToA_origpos_.x(),
-                    self.ToA_origpos_.y(),
-                    self.ToA_origwidth_,
-                    self.ToA_origheight_
+                self._ToT_cum.setParent(self._tab)
+                self._ToT_cum.setGeometry(
+                    self.ToT_cum_origpos_.x(),
+                    self.ToT_cum_origpos_.y(),
+                    self.ToT_cum_origwidth_,
+                    self.ToT_cum_origheight_
                 )
-                self._ToA.show()                       
+                self._ToT_cum.show()                       
             event.ignore() #Ignore close
             return True #Tell qt that process done
         else:
